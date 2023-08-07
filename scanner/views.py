@@ -78,7 +78,7 @@ class ScannerView(generics.CreateAPIView):
             probs = np.exp(prediction) / np.sum(np.exp(prediction), axis=1, keepdims=True)
             
             predicted_class_index = np.argmax(probs, axis=1)
-            predicted_class_name = self.class_names[predicted_class_index]
+            predicted_class_name = self.class_names[predicted_class_index[0]]
             
             return Response(
                 {
