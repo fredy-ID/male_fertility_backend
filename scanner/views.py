@@ -75,9 +75,7 @@ class ScannerView(generics.CreateAPIView):
             
             prediction = model.predict(image_array)
             
-            probs = np.exp(prediction) / np.sum(np.exp(prediction), axis=1, keepdims=True)
-            
-            predicted_class_index = np.argmax(probs, axis=1)
+            predicted_class_index = np.argmax(prediction)
             predicted_class_name = self.class_names[predicted_class_index]
             
             return Response(
