@@ -14,54 +14,47 @@ import requests
 from .ai_models import model_1_15_epochs
 from .forms import UploadFileForm
 import tempfile
+import traceback
 
 from .serializers import ScannerSerializer
 
+class_names = ['amorphous', 'normal', 'pyriform', 'tapered']
+num_classes = len(class_names)
 
-def initialize_model():
-    class_names = ['amorphous', 'normal', 'pyriform', 'tapered']
-    num_classes = len(class_names)
-    
-    data_augmentation = keras.Sequential(
-        [
-            layers.RandomFlip("horizontal",
-                            input_shape=(180,
-                                        180,
-                                        3)),
-            layers.RandomRotation(0.1),
-            layers.RandomZoom(0.1),
-        ]
-    )
-    
-    model = Sequential([
-        data_augmentation,
-        layers.Rescaling(1./255),
-        layers.Conv2D(16, 3, padding='same', activation='relu'),
-        layers.MaxPooling2D(),
-        layers.Conv2D(32, 3, padding='same', activation='relu'),
-        layers.MaxPooling2D(),
-        layers.Conv2D(64, 3, padding='same', activation='relu'),
-        layers.MaxPooling2D(),
-        layers.Dropout(0.2),
-        layers.Flatten(),
-        layers.Dense(128, activation='relu'),
-        layers.Dense(num_classes)
-    ])
-    model_folder = os.path.dirname(__file__)  # get current directory
-    file_path = os.path.join(model_folder, 'ai_models/model_1_15_epochs')
+data_augmentation = keras.Sequential(
+    [
+        layers.RandomFlip("horizontal",
+                        input_shape=(180,
+                                    180,
+                                    3)),
+        layers.RandomRotation(0.1),
+        layers.RandomZoom(0.1),
+    ]
+)
 
-    try:
-        model.load_weights(file_path)
-        return model
-    except Exception as e:
-        print('_____________________________')
-        print('Erreur lors du chargement du modèle :', e)
-        print('_____________________________')
-        raise
+model = Sequential([
+    data_augmentation,
+    layers.Rescaling(1./255),
+    layers.Conv2D(16, 3, padding='same', activation='relu'),
+    layers.MaxPooling2D(),
+    layers.Conv2D(32, 3, padding='same', activation='relu'),
+    layers.MaxPooling2D(),
+    layers.Conv2D(64, 3, padding='same', activation='relu'),
+    layers.MaxPooling2D(),
+    layers.Dropout(0.2),
+    layers.Flatten(),
+    layers.Dense(128, activation='relu'),
+    layers.Dense(num_classes)
+])
 
-    
-
-model = initialize_model()
+try:
+    model = load_model('scanner/ai_models/model_1_15_epochs')
+except Exception as e:
+    print('_____________________________')
+    print('Erreur lors du chargement du modèle :', e)
+    traceback.print_exc()  # Ajoutez cette ligne pour afficher la trace de la pile
+    print('_____________________________')
+    raise
 
 class ScannerView(generics.CreateAPIView):
     serializer_class = ScannerSerializer
@@ -80,7 +73,7 @@ class ScannerView(generics.CreateAPIView):
             image_array = np.expand_dims(image_array, axis=0)
             
             
-            prediction = self.model.predict(image_array)
+            prediction = model.predict(image_array)
             
             predicted_class_index = np.argmax(prediction)
             predicted_class_name = self.class_names[predicted_class_index]
